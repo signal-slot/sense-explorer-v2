@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtGraphs
 
@@ -49,14 +50,17 @@ Item {
         Repeater {
             model: root.names
             Row {
+                id: entry
+                required property int index
+                required property string modelData
                 spacing: 5
                 Rectangle {
                     width: 14; height: 4; radius: 2
                     anchors.verticalCenter: parent.verticalCenter
-                    color: Theme.seriesColors[index]
+                    color: Theme.seriesColors[entry.index]
                 }
                 Text {
-                    text: modelData
+                    text: entry.modelData
                     font.pixelSize: Theme.fontLabel
                     color: Theme.dim
                 }

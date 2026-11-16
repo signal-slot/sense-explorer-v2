@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 
@@ -35,9 +36,9 @@ Rectangle {
         Keys.onLeftPressed: win.page = (win.page + 2) % 3
         Keys.onRightPressed: win.page = (win.page + 1) % 3
         Keys.onPressed: (e) => {
-            if (e.key === Qt.Key_E) sensors.failEnv = !sensors.failEnv
-            else if (e.key === Qt.Key_I) sensors.failImu = !sensors.failImu
-            else if (e.key === Qt.Key_C) sensors.failColor = !sensors.failColor
+            if (e.key === Qt.Key_E) win.sensors.failEnv = !win.sensors.failEnv
+            else if (e.key === Qt.Key_I) win.sensors.failImu = !win.sensors.failImu
+            else if (e.key === Qt.Key_C) win.sensors.failColor = !win.sensors.failColor
         }
     }
 
@@ -47,9 +48,9 @@ Rectangle {
 
         StatusBar {
             Layout.fillWidth: true
-            stateText: sensors.status
-            uptime: sensors.t
-            simulated: sensors.simulated
+            stateText: win.sensors.status
+            uptime: win.sensors.t
+            simulated: win.sensors.simulated
         }
 
         RowLayout {
@@ -59,6 +60,8 @@ Rectangle {
             Repeater {
                 model: win.pageNames
                 TabButton {
+                    required property int index
+                    required property string modelData
                     Layout.fillWidth: true
                     label: modelData
                     current: win.page === index
@@ -73,23 +76,23 @@ Rectangle {
             Layout.leftMargin: Theme.gap
             Layout.rightMargin: Theme.gap
             currentIndex: win.page
-            EnvironmentPage { backend: sensors }
-            MotionPage { backend: sensors }
-            LightLedPage { backend: sensors }
+            EnvironmentPage { backend: win.sensors }
+            MotionPage { backend: win.sensors }
+            LightLedPage { backend: win.sensors }
         }
 
         Rectangle {   // footer
             Layout.fillWidth: true
             Layout.preferredHeight: 28
             color: Theme.panel
-            function age(u) { return u < 0 ? "--" : (sensors.t - u).toFixed(0) + " s ago" }
+            function age(u) { return u < 0 ? "--" : (win.sensors.t - u).toFixed(0) + " s ago" }
             Text {
                 anchors.left: parent.left
                 anchors.leftMargin: 12
                 anchors.verticalCenter: parent.verticalCenter
-                text: "Last update  Env " + parent.age(sensors.envUpdated)
-                    + " / IMU " + parent.age(sensors.imuUpdated)
-                    + " / Color " + parent.age(sensors.colorUpdated)
+                text: "Last update  Env " + parent.age(win.sensors.envUpdated)
+                    + " / IMU " + parent.age(win.sensors.imuUpdated)
+                    + " / Color " + parent.age(win.sensors.colorUpdated)
                 font.pixelSize: 12
                 color: Theme.dim
             }
@@ -97,9 +100,9 @@ Rectangle {
                 anchors.right: parent.right
                 anchors.rightMargin: 12
                 anchors.verticalCenter: parent.verticalCenter
-                text: "Rate  Env 1 Hz / IMU 20 Hz (graph 10 Hz) / Color 2 Hz    Errors " + sensors.errorCount
+                text: "Rate  Env 1 Hz / IMU 20 Hz (graph 10 Hz) / Color 2 Hz    Errors " + win.sensors.errorCount
                 font.pixelSize: 12
-                color: sensors.errorCount > 0 ? Theme.warn : Theme.dim
+                color: win.sensors.errorCount > 0 ? Theme.warn : Theme.dim
             }
         }
     }

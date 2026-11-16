@@ -32,7 +32,7 @@ void SensorBackend::poll()
     SensorSnapshot s;
     sensorsGet(&s);
     m_s = s;
-    m_t = m_clock.elapsed() / 1000.0;
+    m_t = static_cast<double>(m_clock.elapsed()) / 1000.0;
     emit tChanged();
 
     if (s.envSeq != prev.envSeq || s.envValid != prev.envValid) {

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 
@@ -53,6 +54,8 @@ Item {
             Repeater {
                 model: ["Temp", "Humidity", "Pressure"]
                 TabButton {
+                    required property int index
+                    required property string modelData
                     Layout.fillWidth: true
                     Layout.preferredHeight: 36
                     label: modelData
