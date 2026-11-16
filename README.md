@@ -75,6 +75,14 @@ The binary starts the UI with no sensors, so every value shows `--`. To see simu
 
 Writing the image to an SD card is not part of the script.
 
+### Why the layout is not a typical Zephyr application
+
+This is a Qt application, not a Zephyr application with `prj.conf`, `boards/` and `src/`. `CMakeLists.txt` is an ordinary Qt project (`qt_add_executable`, `qt6_add_qml_module`) and does not call `find_package(Zephyr)`.
+
+The Zephyr application is the `qt-app` of `qt6-for-zephyr`, which owns the Zephyr side of the build. It takes any existing Qt application directory through `-DQT_APP_DIR` without changing it, so the same sources also build on a desktop. That is why the board-specific files here (`zephyr/sensehat.conf` and `zephyr/sensehat.overlay`) are not picked up automatically: `build-board.sh` passes them to `west build` with `-DEXTRA_CONF_FILE` and `-DEXTRA_DTC_OVERLAY_FILE`, next to the GL settings of `qt-app`.
+
+(This follows how `qt-app` is described in its `CMakeLists.txt`. Making the application a standard Zephyr one, with its own `find_package(Zephyr)`, was not tried.)
+
 ## What was checked
 
 On one board, 2026-11-16, from runs of about 220 to 240 seconds:
