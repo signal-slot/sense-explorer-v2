@@ -31,14 +31,16 @@ for v in ZEPHYR_WORKSPACE ZEPHYR_VENV ZEPHYR_SDK_DIR QT6_FOR_ZEPHYR QT_ZEPHYR_PR
     echo "error: $v is not a directory: ${!v}" >&2
     exit 1
   fi
-  printf -v "$v" '%s' "$(cd "${!v}" && pwd -P)"
+  # CDPATH= keeps cd quiet; the explicit check stops the script if cd fails.
+  abs=$(CDPATH= cd -- "${!v}" && pwd -P) || { echo "error: cannot enter $v: ${!v}" >&2; exit 1; }
+  printf -v "$v" '%s' "$abs"
 done
 if [ ! -d "$ZEPHYR_WORKSPACE/zephyr" ]; then
   echo "error: $ZEPHYR_WORKSPACE/zephyr does not exist" >&2
   exit 1
 fi
 
-APP=$(cd "$(dirname "$0")" && pwd)
+APP=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 B=${1:-$APP/build-board}
 case $B in /*) ;; *) B=$PWD/$B ;; esac
 M=$QT6_FOR_ZEPHYR
