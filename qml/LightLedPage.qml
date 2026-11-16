@@ -2,7 +2,7 @@
 import QtQuick
 import QtQuick.Layouts
 
-// 色センサーの値(参考値)と、8x8 の LED のプレビューと操作。
+// Colour sensor values (reference only), and the 8x8 LED preview and controls.
 Item {
     id: root
     required property var backend
@@ -12,7 +12,7 @@ Item {
         {name: "Red", c: "#ff0000"}, {name: "Green", c: "#00ff00"}, {name: "Blue", c: "#0000ff"},
         {name: "Yellow", c: "#ffff00"}, {name: "White", c: "#ffffff"}
     ]
-    // センサーの色を画面の色にする。最大のチャンネルを 255 にそろえる(校正なし)
+    // The sensed colour as a screen colour: the largest channel is scaled to 255 (uncalibrated).
     readonly property color sensed: {
         const m = Math.max(backend.red, backend.green, backend.blue, 1)
         return Qt.rgba(backend.red / m, backend.green / m, backend.blue / m, 1)
@@ -63,7 +63,7 @@ Item {
             Item { Layout.fillHeight: true }
         }
 
-        Grid {   // LED のプレビュー。タップで選んだ色にする
+        Grid {   // LED preview: a tap sets the cell to the picked colour
             Layout.alignment: Qt.AlignTop
             columns: 8
             spacing: 3
@@ -83,7 +83,7 @@ Item {
             }
         }
 
-        ColumnLayout {   // 色の選択と全面操作
+        ColumnLayout {   // colour choice, fill all and clear
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignTop
             spacing: Theme.gap

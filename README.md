@@ -48,6 +48,24 @@ The runs described here used a local YakoGL change that accepts `GL_UNSIGNED_INT
 
 Grid lines also depend on the `gl_FragData[0]` read fix ([signal-slot/yakogl#6479](https://github.com/signal-slot/yakogl/pull/6479)). Whether the grid is drawn on the board was not checked.
 
+## Building the dependencies
+
+The image needs three things that are not in this repository. The steps follow the scripts of `qt6-for-zephyr` and the notes of this project; a run from scratch on a clean machine was not done.
+
+1. **Zephyr and its SDK.** A west workspace at Zephyr v4.5.0 (the commit pinned in `zephyr-module/tools/rpi4-pins.sh` of `qt6-for-zephyr`), and Zephyr SDK 1.0.1.
+2. **Qt 6.12 for Zephyr.** Use the Qt 6.12 port of `qt6-for-zephyr` (the `zephyr-qt6.12` branch at the time of writing). Build a host Qt of the same version first (`QT_HOST_PATH`), then cross-build Qt with OpenGL ES and Qt Graphs:
+
+   ```sh
+   WITH_GL=1 QT_SUBMODULES="qtbase;qtdeclarative;qtsvg;qtgraphs" \
+   QT_HOST_PATH=/path/to/host-qt PREFIX=$HOME/qt-zephyr-rpi4-graphs-gl \
+   ./build-qt-zephyr-rpi4.sh
+   ```
+
+   `PREFIX` is what `build-board.sh` takes as `QT_ZEPHYR_PREFIX`. The GL build needs the qtbase change for a 32-bit screen depth that the `qt6-for-zephyr` branch carries (see the header of the script).
+3. **YakoGL.** Clone [signal-slot/yakogl](https://github.com/signal-slot/yakogl) at the commit pinned in `rpi4-pins.sh`, plus the change for `GL_UNSIGNED_INT` described above, and point `YAKOGL` at it. It is a Zephyr module that `build-board.sh` adds with `ZEPHYR_EXTRA_MODULES`; it needs a Rust nightly toolchain.
+
+`qt6-for-zephyr` also has `zephyr-module/tools/west-build-rpi4.sh`, which builds any Qt application directory for the same board with the pins checked. `build-board.sh` is the same build with this application's own Kconfig fragment and overlay added.
+
 ## Build
 
 ### On a desktop
@@ -103,7 +121,6 @@ Not checked: long runs, memory growth, grid lines, the Motion page by eye, repea
 - The colour values are uncalibrated references. The temperature reads above room temperature (board heat; not investigated).
 - LED brightness is fixed at a default of 0.25 and cannot be changed from the screen.
 - Joystick up, down and press are read but not used by the UI.
-- Source comments are in Japanese.
 
 ## Layout
 

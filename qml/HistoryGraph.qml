@@ -2,8 +2,9 @@
 import QtQuick
 import QtGraphs
 
-// 固定長の履歴グラフ。最大 3 本。push() で点を足し、窓より古い点を捨てる。
-// 欠損のとき、その系列には点を足さない(線は前後の点を結ぶ。途切れは未対応)。
+// A history graph with a fixed time window and up to 3 series. push() adds points and drops
+// those older than the window. When a value is missing no point is added to that series, so
+// the line joins the neighbouring points (gaps are not drawn).
 Item {
     id: root
     property real windowSec: 60
@@ -11,10 +12,10 @@ Item {
     property real yMax: 100
     property real yTick: 20
     property string yFormat: "%.0f"
-    property var names: []       // 系列名(凡例)
+    property var names: []       // series names (legend)
 
     property real latest: 0
-    property real lineWidth: 4  // 実機で確認した太さ(2 は、拡張の件が直ってからは未確認)
+    property real lineWidth: 4  // width checked on the board (2 was not tried after GL_UNSIGNED_INT was accepted)
     readonly property var seriesList: [s0, s1, s2]
 
     function push(t, values) {

@@ -12,19 +12,19 @@
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/kernel.h>
 
-// デバイスツリーのラベルは zephyr/sensehat.overlay で付けている。
+// The devicetree labels are set in zephyr/sensehat.overlay.
 static const struct device *const kI2c = DEVICE_DT_GET(DT_NODELABEL(i2c1));
 static const struct device *const kHts = DEVICE_DT_GET(DT_NODELABEL(hts221));
 static const struct device *const kLps = DEVICE_DT_GET(DT_NODELABEL(lps25hb));
 static const struct device *const kAg = DEVICE_DT_GET(DT_NODELABEL(lsm9ds1_ag));
 static const struct device *const kMag = DEVICE_DT_GET(DT_NODELABEL(lsm9ds1_m));
 
-static constexpr double kRadToDeg = 57.29577951308232;  // 180 / π(M_PI は厳密な規格の設定では未定義)
+static constexpr double kRadToDeg = 57.29577951308232;  // 180 / pi (M_PI is not defined with strict standard settings)
 static constexpr uint16_t kColorAddr = 0x39;
-static constexpr uint16_t kMcuAddr = 0x46;  // LED とジョイスティックのマイコン
+static constexpr uint16_t kMcuAddr = 0x46;  // microcontroller of the LED matrix and the joystick
 static constexpr int kTickMs = 50;      // IMU 20 Hz
-static constexpr int kEnvEvery = 20;    // 環境 1 Hz
-static constexpr int kColorEvery = 10;  // 色 2 Hz
+static constexpr int kEnvEvery = 20;    // environment: 1 Hz
+static constexpr int kColorEvery = 10;  // colour: 2 Hz
 
 K_MUTEX_DEFINE(gLock);
 static SensorSnapshot gSnap;
@@ -33,7 +33,7 @@ static K_THREAD_STACK_DEFINE(gStack, 16384);
 static struct k_thread gThread;
 static bool gStarted;
 
-// LED の要求(Qt のスレッドが書き、センサーのスレッドが読む。gLock で守る)
+// LED request: written by the Qt thread, read by the sensor thread (guarded by gLock)
 static uint8_t gLedRgb[64 * 3];
 static double gLedBrightness;
 static bool gLedDirty;
@@ -81,8 +81,9 @@ static bool readImu(double a[3], double g[3], double m[3])
     return true;
 }
 
-// 色センサー(TCS3400 系と推定)は、Zephyr の標準ドライバが割り込みピンを待ち続けるため、
-// レジスタを直接読む(docs/hardware-matrix.md)。積分は 64 サイクル(約 176 ms)、ゲイン 4 倍。
+// The colour sensor (presumed to be a TCS3400 family part) is read through its registers,
+// because Zephyr's tcs3400 driver waits for an interrupt pin that may not be wired.
+// Integration is 64 cycles (about 176 ms), gain 4x.
 static bool colorEnable()
 {
     int rc = i2c_reg_write_byte(kI2c, kColorAddr, 0x81, 0xc0);
@@ -99,7 +100,7 @@ static ColorResult readColor(uint16_t out[4])
     if (i2c_reg_read_byte(kI2c, kColorAddr, 0x93, &st) != 0)
         return ColorError;
     if (!(st & 1))
-        return ColorNotReady;  // 積分の途中。前の値を使い続ける(失敗には数えない)
+        return ColorNotReady;  // still integrating: keep the previous value, not an error
     if (i2c_burst_read(kI2c, kColorAddr, 0x94, d, sizeof(d)) != 0)
         return ColorError;
     for (int i = 0; i < 4; i++)
@@ -107,9 +108,9 @@ static ColorResult readColor(uint16_t out[4])
     return ColorOk;
 }
 
-// LED は、8 行 × (R 8 画素、G 8 画素、B 8 画素) の 192 バイトを、レジスタ 0 から 1 回で書く。
-// 値は 5 ビット(0〜31)。1 回の一括書き込みで通り、読み戻しも一致した(docs/hardware-matrix.md)。
-// 画素の位置と向きは、実機の目視で確かめる(未確認)。
+// The LED matrix takes 192 bytes written from register 0 in one burst: 8 rows of
+// (8 R, 8 G, 8 B) values, 5 bits each (0 to 31). A single burst write worked and the
+// read-back matched on the board. The pixel positions and orientation were only checked by eye.
 static bool ledWrite(const uint8_t rgb[64 * 3], double brightness)
 {
     uint8_t fb[192];
@@ -141,7 +142,7 @@ static void threadMain(void *, void *, void *)
 
     for (int tick = 0;; tick++) {
         next += kTickMs;
-        SensorSnapshot s;  // この周期の結果。最後に 1 回だけ、まとめて公開する
+        SensorSnapshot s;  // result of this period; published once, at the end
         k_mutex_lock(&gLock, K_FOREVER);
         s = gSnap;
         k_mutex_unlock(&gLock);
@@ -181,7 +182,7 @@ static void threadMain(void *, void *, void *)
 
             if (tick % kColorEvery == 0) {
                 if (!colorOn)
-                    colorOn = colorEnable();  // 起動時に失敗していたら、やり直す
+                    colorOn = colorEnable();  // retry if it failed at start
                 uint16_t c[4];
                 const ColorResult r = colorOn ? readColor(c) : ColorError;
                 if (r == ColorOk) {
@@ -191,13 +192,13 @@ static void threadMain(void *, void *, void *)
                 } else if (r == ColorError) {
                     s.colorValid = false;
                     s.errors++;
-                    colorOn = false;  // 次の周期で、設定からやり直す
+                    colorOn = false;  // set it up again in the next period
                 }
             }
         }
 
         if (ready) {
-            // ジョイスティック: 押された瞬間(ビットが 0 → 1)を記憶する
+            // Joystick: remember the moment a button goes down (bit 0 -> 1)
             uint8_t j = 0;
             if (i2c_reg_read_byte(kI2c, kMcuAddr, 0xf2, &j) == 0) {
                 joyWasOk = true;
@@ -215,7 +216,7 @@ static void threadMain(void *, void *, void *)
                 joyWasOk = false;
             }
 
-            // LED: 要求があれば書く。失敗したら、1 秒おいてやり直す
+            // LED: write if requested; after a failure, retry one second later
             uint8_t rgb[64 * 3];
             double br = 0;
             bool dirty = false;
@@ -234,14 +235,14 @@ static void threadMain(void *, void *, void *)
                     s.errors++;
                     ledRetryAt = k_uptime_get() + 1000;
                     k_mutex_lock(&gLock, K_FOREVER);
-                    gLedDirty = true;  // 新しい要求が来ていれば、そちらが上書きしている
+                    gLedDirty = true;  // a newer request, if any, has already replaced the data
                     k_mutex_unlock(&gLock);
                 }
             }
         }
 
         k_mutex_lock(&gLock, K_FOREVER);
-        // errors だけは、LED 側で増えた分を含めて公開する。ほかの値はこの周期の結果
+        // errors includes the failures counted above; the other values are this period's result
         gSnap = s;
         k_mutex_unlock(&gLock);
 
@@ -249,7 +250,7 @@ static void threadMain(void *, void *, void *)
         if (wait > 0)
             k_msleep(static_cast<int32_t>(wait));
         else
-            next = k_uptime_get();  // 遅れたら、取り戻そうとせず、基準を置き直す
+            next = k_uptime_get();  // if late, do not catch up; reset the time base
     }
 }
 
@@ -288,7 +289,7 @@ void sensorsGet(SensorSnapshot *out)
     k_mutex_unlock(&gLock);
 }
 
-#else  // ホスト(開発用): センサーはないので、常に「取得できない」
+#else  // host (development): no sensors, so nothing is ever available
 
 void sensorsStart() {}
 uint32_t sensorsTakeJoystick() { return 0; }

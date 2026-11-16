@@ -23,15 +23,15 @@ target_link_libraries(sense_explorer PUBLIC
     Qt::Graphs
 )
 
-# QML は qml/ にひとまとめ(ホストでは qml/Main.qml を直接動かす)。
-# Main.qml(Window)は実機では使わない。実機は App.qml を QQuickView で表示する。
+# All QML files are in qml/. Main.qml (a Window) is only for the desktop; on the board,
+# main.cpp shows App.qml in a QQuickView.
 set(SE_QML_FILES
     App Theme StatusBar SensorCard HistoryGraph TabButton
     EnvironmentPage MotionPage LightLedPage MockBackend)
 set(SE_QML_PATHS)
 foreach(n IN LISTS SE_QML_FILES)
     list(APPEND SE_QML_PATHS qml/${n}.qml)
-    # リソース内の置き場所をモジュールの直下(qmldir と同じ階層)にそろえる
+    # put each file at the top of the module in the resource (next to qmldir)
     set_source_files_properties(qml/${n}.qml PROPERTIES QT_RESOURCE_ALIAS ${n}.qml)
 endforeach()
 set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)

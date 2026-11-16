@@ -2,8 +2,8 @@
 import QtQuick
 import QtQuick.Layouts
 
-// 静的な傾斜角(Roll、Pitch)、加速度の 10 秒の履歴、角速度と磁場の数値。
-// Yaw は、磁気補正をしていないので出さない。
+// Static tilt (roll and pitch), a 10-second acceleration history, and angular velocity and
+// magnetic field as numbers. Yaw is not shown: there is no magnetic compensation.
 Item {
     id: root
     required property var backend
@@ -14,7 +14,7 @@ Item {
     Connections {
         target: root.backend
         function onImuSample(t, ax, ay, az) {
-            // 取得 20 Hz に対し、グラフは 10 Hz で足す
+            // the IMU is read at 20 Hz; the graph gets a point at 10 Hz
             root.skip = (root.skip + 1) % 2
             if (root.skip === 0)
                 g.push(t, [ax, ay, az])
@@ -41,7 +41,7 @@ Item {
                 border.width: 1
                 border.color: root.backend.imuValid ? Theme.dim : Theme.warn
 
-                Item {   // 水平線。Roll で回し、Pitch で上下に動かす
+                Item {   // horizon: rotated by roll, moved up and down by pitch
                     anchors.centerIn: parent
                     width: 400; height: 400
                     rotation: -root.backend.roll
@@ -57,7 +57,7 @@ Item {
                         color: "#1e88e5"
                     }
                 }
-                Rectangle {   // 中心の目印
+                Rectangle {   // centre mark
                     visible: root.backend.imuValid
                     anchors.centerIn: parent
                     width: 60; height: 3

@@ -2,7 +2,7 @@
 pragma Singleton
 import QtQuick
 
-// 色と寸法の一覧。7 インチ(800x480)のタッチ操作を想定する。
+// Colours and sizes, for touch operation on an 800x480 display.
 QtObject {
     readonly property color bg: "#12161d"
     readonly property color panel: "#1c222c"
@@ -16,7 +16,7 @@ QtObject {
     readonly property color simulated: "#ff7043"
     readonly property var seriesColors: ["#4fc3f7", "#ffb74d", "#81c784"]
 
-    readonly property int touch: 48        // タッチ対象の最小の高さ(px)
+    readonly property int touch: 48        // minimum height of a touch target (px)
     readonly property int gap: 8
     readonly property int fontLabel: 14
     readonly property int fontBody: 16

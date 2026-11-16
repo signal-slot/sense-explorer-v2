@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import QtQuick
 
-// 自前のタブボタン。Qt Quick Controls に依存しない(実機側の有無が未確認のため)。
+// A simple tab button. It does not depend on Qt Quick Controls.
 Rectangle {
     id: root
     property string label

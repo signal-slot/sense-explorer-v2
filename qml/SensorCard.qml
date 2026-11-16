@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import QtQuick
 
-// 1 つの値を大きく出すカード。取得できないときは "--" を出し、最後の値を見せない。
+// A card that shows one value in large type. When the value is not available it shows "--"
+// and does not keep showing the last value.
 Rectangle {
     id: root
     property string title

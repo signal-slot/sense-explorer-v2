@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 #include <zephyr/dt-bindings/sensor/lsm9ds1.h>
 
-/* Sense HAT V2 のセンサー(アドレスは pinout.xyz と Linux の rpi-sense-v2-overlay による。
- * 実機の i2c scan で確認するまで推定)。いずれもポーリングで読み、割り込みは使わない。 */
+/* Sense HAT V2 sensors. The addresses come from pinout.xyz and the Linux rpi-sense-v2
+ * overlay, and were confirmed with an I2C scan on the board. All are polled; no interrupts. */
 &i2c1 {
 	hts221: hts221@5f {
 		compatible = "st,hts221";

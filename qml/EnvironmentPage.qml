@@ -2,8 +2,9 @@
 import QtQuick
 import QtQuick.Layouts
 
-// 温度・湿度・気圧のカードと、選んだ 1 つの量の 60 秒の履歴。
-// 単位の違う量を同じ Y 軸に混ぜないため、グラフは 1 つずつ切り替える。
+// Cards for temperature, humidity and pressure, and a 60-second history of the selected one.
+// The graph is switched one quantity at a time so that quantities with different units
+// do not share a Y axis.
 Item {
     id: root
     required property var backend

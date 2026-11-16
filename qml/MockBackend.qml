@@ -1,21 +1,23 @@
 // SPDX-License-Identifier: BSD-3-Clause
 import QtQuick
 
-// モックのセンサー値。本物の層(C++ の QObject)と同じプロパティ名にして、差し替え可能にする。
-// 単位: 温度 °C、湿度 %、気圧 hPa、加速度 m/s²、角速度 rad/s、磁場 µT、角度 度。
+// Mock sensor values, with the same property names as the real backend (the C++ QObject)
+// so that either can be used. Units: temperature in degrees C, humidity in %, pressure in
+// hPa, acceleration in m/s^2, angular velocity in rad/s, magnetic field in uT, angles in
+// degrees.
 Item {
     id: root
 
     readonly property bool simulated: true
-    property bool active: true         // false のときは、タイマーを止める(本物の層を使うとき)
-    property real t: 0                 // 起動からの秒数
+    property bool active: true         // when false the timers are stopped (the real backend is in use)
+    property real t: 0                 // seconds since start
 
-    // 環境(1 Hz)
+    // environment (1 Hz)
     property real temperature: 0
     property real humidity: 0
     property real pressure: 0
     property bool envValid: false
-    property real envUpdated: -1       // 最後に正常に取れた時刻(秒)
+    property real envUpdated: -1       // time of the last good reading (s)
 
     // IMU(20 Hz)
     property real ax: 0
@@ -27,12 +29,12 @@ Item {
     property real mx: 0
     property real my: 0
     property real mz: 0
-    property real roll: 0              // 静的な傾斜角(加速度のみ。Yaw は出さない)
+    property real roll: 0              // static tilt (from the acceleration only; no yaw)
     property real pitch: 0
     property bool imuValid: false
     property real imuUpdated: -1
 
-    // 色(参考値。校正なし)
+    // colour (uncalibrated reference values)
     property int clear: 0
     property int red: 0
     property int green: 0
@@ -44,9 +46,9 @@ Item {
 
     // LED(8x8、"#rrggbb")
     property var ledPixels: Array(64).fill("#000000")
-    property real ledBrightness: 0.25  // 0〜1。上限は表示側で 0.5 に抑える
+    property real ledBrightness: 0.25  // 0 to 1
 
-    // 動作確認用の故障の注入(キー E、I、C)
+    // fault injection for testing (keys E, I and C)
     property bool failEnv: false
     property bool failImu: false
     property bool failColor: false
@@ -60,10 +62,10 @@ Item {
 
     signal envSample(real t, real temp, real hum, real pres)
     signal imuSample(real t, real ax, real ay, real az)
-    signal joystickPressed(string dir)   // 本物の層と同じ(モックでは出さない)
+    signal joystickPressed(string dir)   // as in the real backend (never emitted by the mock)
 
-    // color は String にして保存する。QML の color 型の値をそのまま入れると、
-    // 元のプロパティ(選択中の色)の変更が、保存済みの全画素に及ぶ。
+    // Store color as a String. If a QML color value is stored as it is, a later change of
+    // the original property (the picked colour) changes every pixel already stored.
     function setLed(x, y, color) {
         const a = ledPixels.slice()
         a[y * 8 + x] = String(color)
@@ -76,11 +78,11 @@ Item {
         fillLed("#000000")
     }
 
-    Timer {   // 時刻
+    Timer {   // clock
         interval: 50; running: root.active; repeat: true
         onTriggered: root.t += 0.05
     }
-    Timer {   // 環境 1 Hz
+    Timer {   // environment, 1 Hz
         interval: 1000; running: root.active; repeat: true; triggeredOnStart: true
         onTriggered: {
             if (root.failEnv) {
@@ -124,7 +126,7 @@ Item {
             root.imuSample(root.t, root.ax, root.ay, root.az)
         }
     }
-    Timer {   // 色 2 Hz
+    Timer {   // colour, 2 Hz
         interval: 500; running: root.active; repeat: true; triggeredOnStart: true
         onTriggered: {
             if (root.failColor) {

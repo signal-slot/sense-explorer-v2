@@ -10,8 +10,8 @@ SensorBackend::SensorBackend(QObject *parent) : QObject(parent)
         m_led.append(QStringLiteral("#000000"));
     m_clock.start();
     sensorsStart();
-    pushLed();  // 起動時は全消灯(前の表示が残っていても消す)
-    m_timer.setInterval(50);  // Zephyr 側の IMU の周期(20 Hz)と同じ
+    pushLed();  // start with all LEDs off, even if the matrix still shows an old picture
+    m_timer.setInterval(50);  // same as the IMU period of the Zephyr thread (20 Hz)
     connect(&m_timer, &QTimer::timeout, this, &SensorBackend::poll);
     m_timer.start();
 }

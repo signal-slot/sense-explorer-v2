@@ -7,10 +7,11 @@
 
 #include "zephyrsensors.h"
 
-// QML に見せるセンサー値。プロパティ名は MockBackend.qml と同じ(画面側を変えずに差し替える)。
-// 値の読み取りは Zephyr のスレッド(zephyrsensors.cpp)で行い、ここでは Qt のスレッドのタイマーで
-// 最新値の写しを取るだけにする(Qt のオブジェクトを別のスレッドから触らない)。
-// LED とジョイスティックも、Zephyr のスレッド経由で実機とやり取りする(P3)。
+// Sensor values for QML. The property names are the same as in MockBackend.qml, so the
+// UI can use either one.
+// The sensors, the LED matrix and the joystick are handled by the Zephyr thread
+// (zephyrsensors.cpp). This class only copies the latest values with a timer in the Qt
+// thread; no Qt object is touched from another thread.
 class SensorBackend : public QObject
 {
     Q_OBJECT
@@ -49,7 +50,8 @@ class SensorBackend : public QObject
     Q_PROPERTY(QVariantList ledPixels READ ledPixels NOTIFY ledChanged)
     Q_PROPERTY(qreal ledBrightness READ ledBrightness WRITE setLedBrightness NOTIFY ledChanged)
 
-    // 動作確認用の故障の注入(キー E、I、C)。読み取りは続け、画面には「取れない」として見せる。
+    // Fault injection for testing (keys E, I and C). Reading goes on; the UI is told that
+    // the group is invalid.
     Q_PROPERTY(bool failEnv READ failEnv WRITE setFailEnv NOTIFY failChanged)
     Q_PROPERTY(bool failImu READ failImu WRITE setFailImu NOTIFY failChanged)
     Q_PROPERTY(bool failColor READ failColor WRITE setFailColor NOTIFY failChanged)
@@ -100,7 +102,7 @@ public:
     void setFailImu(bool v);
     void setFailColor(bool v);
 
-    // color は文字列("#rrggbb")で受ける。
+    // color is a string ("#rrggbb").
     Q_INVOKABLE void setLed(int x, int y, const QString &color);
     Q_INVOKABLE void fillLed(const QString &color);
     Q_INVOKABLE void clearLed();
@@ -115,12 +117,12 @@ signals:
     void failChanged();
     void envSample(qreal t, qreal temp, qreal hum, qreal pres);
     void imuSample(qreal t, qreal ax, qreal ay, qreal az);
-    // ジョイスティックが押された("up"、"down"、"left"、"right"、"press")
+    // A joystick press: "up", "down", "left", "right" or "press".
     void joystickPressed(const QString &dir);
 
 private:
     void poll();
-    void pushLed();   // 画面の LED の状態を、Zephyr のスレッド経由で実機に書く
+    void pushLed();   // hand the LED state of the UI to the Zephyr thread, which writes it
 
     QTimer m_timer;
     QElapsedTimer m_clock;

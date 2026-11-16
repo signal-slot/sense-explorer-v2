@@ -9,7 +9,7 @@ int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
 
-    SensorBackend sensors;  // 本物のセンサー(Zephyr のスレッドが読む)。画面より長く生きる
+    SensorBackend sensors;  // the real sensors (read by a Zephyr thread); outlives the view
 
     QQuickView viewer;
     viewer.setInitialProperties({{"sensors", QVariant::fromValue(&sensors)}});

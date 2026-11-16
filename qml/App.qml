@@ -2,7 +2,7 @@
 import QtQuick
 import QtQuick.Layouts
 
-// 画面の本体。ウィンドウは Main.qml が作る(検証では、このファイルだけを描いて保存する)。
+// The UI itself. The window is created by Main.qml (tools/shot.sh renders only this file).
 Rectangle {
     id: win
     width: 800
@@ -10,14 +10,15 @@ Rectangle {
     color: Theme.bg
 
     property int page: 0
-    // センサー値の元。実機では main.cpp が本物(C++ の SensorBackend)を渡し、ホストではモックを使う
+    // Source of the sensor values. On the board, main.cpp passes the real backend (the C++
+    // SensorBackend); on a desktop the mock is used.
     property var sensors: mock
     readonly property var backend: sensors
     readonly property var pageNames: ["Environment", "Motion", "Light & LED"]
 
     MockBackend { id: mock; active: win.sensors === mock }
 
-    // ジョイスティック: 左右でページ移動(ホストのキーボードの左右キーと同じ)
+    // Joystick: left and right switch pages (the same as the arrow keys on a desktop)
     Connections {
         target: win.sensors
         function onJoystickPressed(dir) {
@@ -26,7 +27,8 @@ Rectangle {
         }
     }
 
-    // ジョイスティックの代わり(ホストのキーボード)。左右でページ移動、E/I/C で故障を注入
+    // Keyboard, in place of the joystick on a desktop. Left and right switch pages;
+    // E, I and C inject a fault into the environment, IMU and colour sensor.
     Item {
         anchors.fill: parent
         focus: true
@@ -76,7 +78,7 @@ Rectangle {
             LightLedPage { backend: sensors }
         }
 
-        Rectangle {   // フッタ
+        Rectangle {   // footer
             Layout.fillWidth: true
             Layout.preferredHeight: 28
             color: Theme.panel
