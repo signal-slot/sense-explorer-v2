@@ -64,6 +64,8 @@ The image needs three things that are not in this repository. The steps follow t
    `PREFIX` is what `build-board.sh` takes as `QT_ZEPHYR_PREFIX`. The GL build needs the qtbase change for a 32-bit screen depth that the `qt6-for-zephyr` branch carries (see the header of the script).
 3. **YakoGL.** Clone [signal-slot/yakogl](https://github.com/signal-slot/yakogl) at the commit pinned in `rpi4-pins.sh`, plus the change for `GL_UNSIGNED_INT` described above, and point `YAKOGL` at it. It is a Zephyr module that `build-board.sh` adds with `ZEPHYR_EXTRA_MODULES`; it needs a Rust nightly toolchain.
 
+The sensor thread uses floating point at the same time as Qt, so the image needs `CONFIG_FPU_SHARING=y`. This repository does not set it: it comes from `qt-app/boards/rpi_4b_bcm2711_gl.conf` of `qt6-for-zephyr`, which `build-board.sh` always passes.
+
 `qt6-for-zephyr` also has `zephyr-module/tools/west-build-rpi4.sh`, which builds any Qt application directory for the same board with the pins checked. `build-board.sh` is the same build with this application's own Kconfig fragment and overlay added.
 
 ## Build
@@ -121,6 +123,11 @@ Not checked: long runs, memory growth, grid lines, the Motion page by eye, repea
 - The colour values are uncalibrated references. The temperature reads above room temperature (board heat; not investigated).
 - LED brightness is fixed at a default of 0.25 and cannot be changed from the screen.
 - Joystick up, down and press are read but not used by the UI.
+- If the sensor thread stops (for example an I2C call that never returns), nothing on screen says so: the status stays "Ready" and only the "N s ago" ages in the footer grow. There is no watchdog.
+- The LED matrix is written only when the picture changes. If the Sense HAT loses power and comes back, the matrix is not refreshed and may differ from the picture on screen.
+- The IMU is one group: if the magnetometer cannot be read, roll, pitch and the acceleration graph become unavailable too, and only the first failure is counted as an error.
+- A joystick press shorter than one 50 ms read period can be missed. A button already held at boot counts as a press.
+- The 16 KiB stack of the sensor thread was not measured.
 
 ## Layout
 

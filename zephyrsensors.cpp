@@ -25,6 +25,7 @@ static constexpr uint16_t kMcuAddr = 0x46;  // microcontroller of the LED matrix
 static constexpr int kTickMs = 50;      // IMU 20 Hz
 static constexpr int kEnvEvery = 20;    // environment: 1 Hz
 static constexpr int kColorEvery = 10;  // colour: 2 Hz
+static constexpr int kColorStaleReads = 4;  // "still integrating" this many times in a row (2 s) = error
 
 K_MUTEX_DEFINE(gLock);
 static SensorSnapshot gSnap;
@@ -131,9 +132,13 @@ static bool ledWrite(const uint8_t rgb[64 * 3], double brightness)
 
 static void threadMain(void *, void *, void *)
 {
-    const bool ready = device_is_ready(kI2c) && device_is_ready(kHts) && device_is_ready(kLps)
-        && device_is_ready(kAg) && device_is_ready(kMag);
-    bool colorOn = ready && colorEnable();
+    // Each group depends only on its own devices: the colour sensor, the joystick and the LED
+    // matrix need only the I2C bus, so a missing sensor driver must not stop them.
+    const bool busReady = device_is_ready(kI2c);
+    const bool envReady = busReady && device_is_ready(kHts) && device_is_ready(kLps);
+    const bool imuReady = busReady && device_is_ready(kAg) && device_is_ready(kMag);
+    bool colorOn = busReady && colorEnable();
+    int colorNotReady = 0;  // consecutive "still integrating" results
     bool imuWasValid = false;
     bool joyWasOk = true;
     uint8_t joyPrev = 0;
@@ -147,10 +152,14 @@ static void threadMain(void *, void *, void *)
         s = gSnap;
         k_mutex_unlock(&gLock);
 
-        if (!ready) {
-            if (tick == 0)
+        if (tick == 0) {
+            if (!envReady)
                 s.errors++;
-        } else {
+            if (!imuReady)
+                s.errors++;
+        }
+
+        if (imuReady) {
             double a[3], g[3], m[3];
             if (readImu(a, g, m)) {
                 s.ax = a[0]; s.ay = a[1]; s.az = a[2];
@@ -167,7 +176,9 @@ static void threadMain(void *, void *, void *)
                     s.errors++;
                 imuWasValid = false;
             }
+        }
 
+        if (envReady) {
             if (tick % kEnvEvery == 0) {
                 double t, h, p;
                 if (readEnv(&t, &h, &p)) {
@@ -179,25 +190,27 @@ static void threadMain(void *, void *, void *)
                     s.errors++;
                 }
             }
+        }
 
+        if (busReady) {
             if (tick % kColorEvery == 0) {
                 if (!colorOn)
                     colorOn = colorEnable();  // retry if it failed at start
                 uint16_t c[4];
                 const ColorResult r = colorOn ? readColor(c) : ColorError;
+                colorNotReady = (r == ColorNotReady) ? colorNotReady + 1 : 0;
                 if (r == ColorOk) {
                     s.clear = c[0]; s.red = c[1]; s.green = c[2]; s.blue = c[3];
                     s.colorValid = true;
                     s.colorSeq++;
-                } else if (r == ColorError) {
+                } else if (r == ColorError || colorNotReady >= kColorStaleReads) {
+                    // An error, or "still integrating" for too long: stop showing the old value
                     s.colorValid = false;
                     s.errors++;
                     colorOn = false;  // set it up again in the next period
+                    colorNotReady = 0;
                 }
             }
-        }
-
-        if (ready) {
             // Joystick: remember the moment a button goes down (bit 0 -> 1)
             uint8_t j = 0;
             if (i2c_reg_read_byte(kI2c, kMcuAddr, 0xf2, &j) == 0) {

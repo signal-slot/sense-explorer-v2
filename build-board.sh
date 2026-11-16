@@ -25,8 +25,22 @@ for v in ZEPHYR_WORKSPACE ZEPHYR_VENV ZEPHYR_SDK_DIR QT6_FOR_ZEPHYR QT_ZEPHYR_PR
   fi
 done
 
+# The script changes into the Zephyr tree below, so every path must be absolute by then.
+for v in ZEPHYR_WORKSPACE ZEPHYR_VENV ZEPHYR_SDK_DIR QT6_FOR_ZEPHYR QT_ZEPHYR_PREFIX QT_HOST_PATH YAKOGL; do
+  if [ ! -d "${!v}" ]; then
+    echo "error: $v is not a directory: ${!v}" >&2
+    exit 1
+  fi
+  printf -v "$v" '%s' "$(cd "${!v}" && pwd -P)"
+done
+if [ ! -d "$ZEPHYR_WORKSPACE/zephyr" ]; then
+  echo "error: $ZEPHYR_WORKSPACE/zephyr does not exist" >&2
+  exit 1
+fi
+
 APP=$(cd "$(dirname "$0")" && pwd)
 B=${1:-$APP/build-board}
+case $B in /*) ;; *) B=$PWD/$B ;; esac
 M=$QT6_FOR_ZEPHYR
 
 # shellcheck disable=SC1091
