@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 import QtQuick
 
 // モックのセンサー値。本物の層(C++ の QObject)と同じプロパティ名にして、差し替え可能にする。

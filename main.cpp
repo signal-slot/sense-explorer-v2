@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #include <QtGui/qguiapplication.h>
 #include <QtQml/qqmlengine.h>
 #include <QtQuick/qquickview.h>

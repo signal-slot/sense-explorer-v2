@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: BSD-3-Clause */
 #include <zephyr/dt-bindings/sensor/lsm9ds1.h>
 
 /* Sense HAT V2 のセンサー(アドレスは pinout.xyz と Linux の rpi-sense-v2-overlay による。

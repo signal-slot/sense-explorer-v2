@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 import QtQuick
 
 // ヘッダ。接続状態、稼働時間、SIMULATED の表示。

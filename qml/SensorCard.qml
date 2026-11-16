@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 import QtQuick
 
 // 1 つの値を大きく出すカード。取得できないときは "--" を出し、最後の値を見せない。

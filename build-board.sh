@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: BSD-3-Clause
 # Build the firmware image for the Raspberry Pi 4 (rpi_4b/bcm2711) with the OpenGL ES (YakoGL) settings.
 #
 # Usage: ./build-board.sh [build-directory]     (default: ./build-board)

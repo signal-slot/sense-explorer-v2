@@ -1,4 +1,5 @@
 #!/bin/bash
+# SPDX-License-Identifier: BSD-3-Clause
 # 使い方: tools/shot.sh <ページ番号> <出力 PNG> [待ち ms] [故障キー列 例: EIC]
 # App.qml を offscreen で描き、待ってから PNG に保存する(検証用)。
 Q=${QT_HOST_DIR:-$HOME/Qt/6.12.0/gcc_64}   # ホスト用 Qt(環境変数 QT_HOST_DIR で変えられる)

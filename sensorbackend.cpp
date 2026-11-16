@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #include "sensorbackend.h"
 
 #include <QtGui/qcolor.h>

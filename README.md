@@ -119,4 +119,4 @@ Not checked: long runs, memory growth, grid lines, the Motion page by eye, repea
 
 ## License
 
-Not decided yet.
+BSD-3-Clause, the same as the sample code of `qt6-for-zephyr`. See `LICENSE`. Each source file carries an `SPDX-License-Identifier` line.

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause
 #pragma once
 // Sense HAT V2 のセンサーを、Zephyr のスレッドで読む層。Qt には依存しない(Zephyr のヘッダーと
 // Qt のマクロが衝突しないよう、Qt 側とは別のファイルに分ける)。
