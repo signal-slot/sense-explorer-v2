@@ -1,0 +1,26 @@
+#include <zephyr/dt-bindings/sensor/lsm9ds1.h>
+
+/* Sense HAT V2 のセンサー(アドレスは pinout.xyz と Linux の rpi-sense-v2-overlay による。
+ * 実機の i2c scan で確認するまで推定)。いずれもポーリングで読み、割り込みは使わない。 */
+&i2c1 {
+	hts221: hts221@5f {
+		compatible = "st,hts221";
+		reg = <0x5f>;
+	};
+
+	lps25hb: lps25hb@5c {
+		compatible = "st,lps25hb-press";
+		reg = <0x5c>;
+	};
+
+	lsm9ds1_ag: lsm9ds1@6a {
+		compatible = "st,lsm9ds1";
+		reg = <0x6a>;
+		imu-odr = <LSM9DS1_IMU_59Hz5>;
+	};
+
+	lsm9ds1_m: lsm9ds1-mag@1c {
+		compatible = "st,lsm9ds1_mag";
+		reg = <0x1c>;
+	};
+};

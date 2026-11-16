@@ -1,2 +1,114 @@
 # sense-explorer
-Qt 6 / QML demo that shows Sense HAT V2 sensors on a Raspberry Pi 4 running Zephyr
+
+Qt 6 / QML demo that shows Sense HAT V2 sensors on a Raspberry Pi 4 running Zephyr.
+
+Sense Explorer shows the temperature, humidity, pressure, motion and light readings of a Sense HAT V2, and drives its 8x8 LED matrix and joystick, from a Qt Quick UI (800x480, touch) running on Zephyr RTOS. The UI is plain QML on top of a small backend interface, so it also runs on a desktop with simulated values.
+
+> **Status (2026-11-16): a demo, run on one board.** Every result below comes from one Raspberry Pi 4 Model B with an 800x480 touch display and one Sense HAT V2, from runs of about four minutes. Long-run stability, memory use and other boards were not checked. See "What was checked".
+
+## Screens
+
+| Page | Shows |
+|---|---|
+| Environment | Temperature, humidity and pressure cards, and a 60-second history of the selected one |
+| Motion | Roll and pitch (from the accelerometer only), a 10-second acceleration history, angular velocity and magnetic field as numbers |
+| Light & LED | Colour sensor readings (uncalibrated), and an 8x8 LED editor: pick a colour, touch a cell, fill all, clear |
+
+A joystick left or right press (the left and right keys on a desktop) switches pages. When a sensor cannot be read, its values show `--` and the error counter in the footer goes up.
+
+## How it works
+
+```text
+Sense HAT (I2C) <-> Zephyr thread <-> shared memory (mutex) <-> SensorBackend (QObject) <-> QML
+```
+
+- One Zephyr thread owns all I2C traffic: sensors, LED matrix and joystick. Qt objects are never touched from that thread.
+- `SensorBackend` copies the latest values with a 50 ms `QTimer` in the Qt thread and exposes them as properties and signals. `MockBackend.qml` has the same property names, so the UI runs without hardware.
+- The Zephyr side (`zephyrsensors.h`) is four functions: `sensorsStart`, `sensorsGet`, `sensorsTakeJoystick` and `ledSet`. Another platform only has to implement those.
+
+| Device | How it is read |
+|---|---|
+| Temperature and humidity (HTS221), pressure (LPS25HB), accelerometer, gyroscope and magnetometer (LSM9DS1) | Zephyr's standard sensor drivers (`zephyr/sensehat.conf`, `zephyr/sensehat.overlay`) |
+| Colour (TCS3400 family, presumed) | Registers read directly at I2C address 0x39, because Zephyr's `tcs3400` driver waits for an interrupt pin that may not be wired |
+| Joystick | Register 0xF2 of the microcontroller at 0x46, polled at 20 Hz; a press is kept until the UI takes it |
+| LED matrix | One 192-byte burst write to register 0 of the microcontroller at 0x46 (5-bit values) |
+
+## Requirements
+
+- A Raspberry Pi 4 Model B (`rpi_4b/bcm2711`) with a Sense HAT V2 and a display.
+- A Zephyr workspace (v4.5.0 was used), the Zephyr SDK and `west`.
+- The `zephyr-module` of [signal-slot/qt6-for-zephyr](https://github.com/signal-slot/qt6-for-zephyr), and a static Qt 6.12 cross build for Zephyr with Qt Quick, Quick Layouts and Qt Graphs, plus a host Qt of the same version.
+- [signal-slot/yakogl](https://github.com/signal-slot/yakogl) for OpenGL ES (see below).
+
+## YakoGL: a change is needed for the graphs
+
+Qt Graphs draws its line series through Qt Quick Shapes' curve renderer, which builds 32-bit index geometry without asking for `GL_OES_element_index_uint` (read in the Qt sources). YakoGL's ES 2.0 surface refuses `GL_UNSIGNED_INT` indices, so on the board the line series are not drawn (the axes and labels are).
+
+The runs described here used a local YakoGL change that accepts `GL_UNSIGNED_INT` and advertises the extension. It is **not** in YakoGL's `main`; the problem is reported in [signal-slot/yakogl#6808](https://github.com/signal-slot/yakogl/issues/6808). Until that is resolved, point `YAKOGL` at a tree with such a change, or expect no lines in the graphs.
+
+Grid lines also depend on the `gl_FragData[0]` read fix ([signal-slot/yakogl#6479](https://github.com/signal-slot/yakogl/pull/6479)). Whether the grid is drawn on the board was not checked.
+
+## Build
+
+### On a desktop
+
+```sh
+cmake -S . -B build -DCMAKE_PREFIX_PATH=/path/to/Qt/6.12.0/gcc_64 -GNinja
+ninja -C build
+```
+
+The binary starts the UI with no sensors, so every value shows `--`. To see simulated values, run the QML file directly:
+
+```sh
+/path/to/Qt/6.12.0/gcc_64/bin/qml qml/Main.qml
+```
+
+`tools/shot.sh <page> <out.png>` renders a page offscreen to a PNG. Set `QT_HOST_DIR` if Qt is not under `~/Qt/6.12.0/gcc_64`.
+
+### For the Raspberry Pi 4
+
+`build-board.sh` runs `west build` with the right configuration files. The header of the script lists the environment variables it needs (Zephyr workspace, SDK, `qt6-for-zephyr`, the Qt prefixes and YakoGL):
+
+```sh
+./build-board.sh            # output: build-board/zephyr/zephyr.bin
+```
+
+Writing the image to an SD card is not part of the script.
+
+## What was checked
+
+On one board, 2026-11-16, from runs of about 220 to 240 seconds:
+
+| Item | Result | Basis |
+|---|---|---|
+| UI | No broken text; graph lines drawn; smooth motion | Observation |
+| Sensor values | Values change on screen | Observation (the numbers were not checked for plausibility) |
+| LED matrix | Off at start; lit and cleared as intended | Observation, and `[led] write ok` in the serial log |
+| Joystick | 4 presses (right, left, right, press), all recorded | Serial log |
+| Errors | No `GL error`, no exception | Serial log |
+
+Not checked: long runs, memory growth, grid lines, the Motion page by eye, repeated or long joystick presses, LED brightness limits and current, and the colour sensor against the colours on screen.
+
+## Known limits
+
+- The UI text is English only: the board image carries only the Roboto font.
+- The colour values are uncalibrated references. The temperature reads above room temperature (board heat; not investigated).
+- LED brightness is fixed at a default of 0.25 and cannot be changed from the screen.
+- Joystick up, down and press are read but not used by the UI.
+- Source comments are in Japanese.
+
+## Layout
+
+| Path | Role |
+|---|---|
+| `main.cpp` | Creates the backend and shows `qrc:/SenseExplorer/App.qml` |
+| `sensorbackend.h/.cpp` | The `QObject` backend used on the board |
+| `zephyrsensors.h/.cpp` | The Zephyr thread (I2C); a stub on other platforms |
+| `qml/` | The UI, `MockBackend.qml` and `Theme.qml` |
+| `zephyr/` | Kconfig fragment and devicetree overlay for the Sense HAT |
+| `build-board.sh` | Builds the Zephyr image |
+| `tools/shot.sh` | Offscreen screenshot of a page |
+
+## License
+
+Not decided yet.
