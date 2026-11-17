@@ -116,13 +116,14 @@ On one board, 2026-11-16, from runs of about 220 to 240 seconds:
 | Joystick | 4 presses (right, left, right, press), all recorded | Serial log |
 | Errors | No `GL error`, no exception | Serial log |
 
-The System page, on the same board, 2026-11-18, from runs of about 420 seconds:
+The System page, on the same board, 2026-11-18, from runs of 300 to 420 seconds:
 
 | Item | Result | Basis |
 |---|---|---|
 | Page switching | Left and right go round the four pages (24 presses in the serial log of one run) | Observation, serial log |
-| Up, down and press | Do nothing in the page logic; no up or down press is in the logs of the four-page runs, so this was not tried on the board | QtTest on the host only |
-| CPU load | 2 to 5 % and steady while the page was open (the first reading after start-up is not shown) | Observation |
+| Up and down | The page did not change, also on the System page (15 presses in the serial log of one 300 s run) | Observation, serial log |
+| Press | Does nothing in the page logic; pressed once in each of two runs, and whether the page changed was not observed | QtTest on the host; serial log |
+| CPU load | 2 to 5 % and steady while the page was open; after start-up it went from `--` to a value (the first reading is not shown) | Observation |
 | Memory and versions | Shown on the page; the numbers were not compared with another source | Observation |
 | Errors | No `<err>`, no `GL error`, no exception | Serial log |
 
