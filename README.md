@@ -15,7 +15,7 @@ Sense Explorer shows the temperature, humidity, pressure, motion and light readi
 | Light & LED | Colour sensor readings (uncalibrated), and an 8x8 LED editor: pick a colour, touch a cell, fill all, clear |
 | System | Zephyr and Qt versions, CPU load (average of all cores) and the use of the `malloc` heap, updated once per second |
 
-A joystick left or right press (the left and right keys on a desktop) switches between the first three pages. Joystick up (the Up key) shows the System page, which is not in that cycle, and joystick down (the Down key) goes back to the page it was opened from; left and right on the System page go back too. The System page can also be opened with its tab. When a sensor cannot be read, its values show `--` and the error counter in the footer goes up.
+A joystick left or right press (the left and right keys on a desktop) switches pages; the four pages are a cycle. When a sensor cannot be read, its values show `--` and the error counter in the footer goes up.
 
 ## How it works
 
@@ -123,7 +123,7 @@ Not checked: long runs, memory growth, grid lines, the Motion page by eye, repea
 - The UI text is English only: the board image carries only the Roboto font.
 - The colour values are uncalibrated references. The temperature reads above room temperature (board heat; not investigated).
 - LED brightness is fixed at a default of 0.25 and cannot be changed from the screen.
-- The joystick press is read but not used by the UI.
+- Joystick up, down and press are read but not used by the UI.
 - The CPU load of the System page is the average of all cores (one core at 100 % shows about 25 % on the 4-core board) and counts time waiting on the GPU as idle. The memory figures are for the `malloc` heap only (not the kernel heap, thread stacks or GPU memory); they need `CONFIG_SYS_HEAP_RUNTIME_STATS` (set in `zephyr/sensehat.conf`) and use a function that is declared only in a private header of Zephyr's libc. Without them the page shows `--`.
 - If the sensor thread stops (for example an I2C call that never returns), nothing on screen says so: the status stays "Ready" and only the "N s ago" ages in the footer grow. There is no watchdog.
 - The LED matrix is written only when the picture changes. If the Sense HAT loses power and comes back, the matrix is not refreshed and may differ from the picture on screen.

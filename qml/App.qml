@@ -16,61 +16,29 @@ Rectangle {
     property var sensors: mock
     readonly property var backend: sensors
     readonly property var pageNames: ["Environment", "Motion", "Light & LED", "System"]
-    // The first three pages are the left/right cycle. The System page is not in it: it is
-    // opened with joystick up (or its tab) and left with joystick down (or left/right), and
-    // it goes back to the page it was opened from.
-    readonly property int cyclePages: 3
-    readonly property int systemPage: 3
-    property int returnPage: 0
 
-    function showPage(i) {
-        if (i === systemPage)
-            openSystem()
-        else
-            page = i
-    }
-    function openSystem() {
-        if (page === systemPage)
-            return   // already shown: keep the page to go back to
-        returnPage = page
-        page = systemPage
-    }
-    function closeSystem() {
-        if (page === systemPage)
-            page = returnPage
-    }
-    // Left (step = cyclePages - 1) and right (step = 1). On the System page they go back.
-    function cycle(step) {
-        if (page === systemPage)
-            closeSystem()
-        else
-            page = (page + step) % cyclePages
-    }
+    // Left (step = pageNames.length - 1) and right (step = 1): the pages are a cycle.
+    function cycle(step) { page = (page + step) % pageNames.length }
 
     MockBackend { id: mock; active: win.sensors === mock }
 
-    // Joystick (the same as the arrow keys on a desktop): left and right switch pages, up
-    // shows the System page, down goes back from it. The press does nothing.
+    // Joystick: left and right switch pages (the same as the arrow keys on a desktop).
+    // Up, down and the press do nothing.
     Connections {
         target: win.sensors
         function onJoystickPressed(dir) {
-            if (dir === "left") win.cycle(win.cyclePages - 1)
+            if (dir === "left") win.cycle(win.pageNames.length - 1)
             else if (dir === "right") win.cycle(1)
-            else if (dir === "up") win.openSystem()
-            else if (dir === "down") win.closeSystem()
         }
     }
 
-    // Keyboard, in place of the joystick on a desktop. Left and right switch pages, Up and
-    // Down open and close the System page; E, I and C inject a fault into the environment,
-    // IMU and colour sensor.
+    // Keyboard, in place of the joystick on a desktop. Left and right switch pages;
+    // E, I and C inject a fault into the environment, IMU and colour sensor.
     Item {
         anchors.fill: parent
         focus: true
-        Keys.onLeftPressed: win.cycle(win.cyclePages - 1)
+        Keys.onLeftPressed: win.cycle(win.pageNames.length - 1)
         Keys.onRightPressed: win.cycle(1)
-        Keys.onUpPressed: win.openSystem()
-        Keys.onDownPressed: win.closeSystem()
         Keys.onPressed: (e) => {
             if (e.key === Qt.Key_E) win.sensors.failEnv = !win.sensors.failEnv
             else if (e.key === Qt.Key_I) win.sensors.failImu = !win.sensors.failImu
@@ -101,7 +69,7 @@ Rectangle {
                     Layout.fillWidth: true
                     label: modelData
                     current: win.page === index
-                    onClicked: win.showPage(index)
+                    onClicked: win.page = index
                 }
             }
         }

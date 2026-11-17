@@ -4,7 +4,7 @@ import QtQuick
 import QtQuick.Layouts
 
 // Zephyr and Qt versions, CPU load and malloc heap use, updated once per second.
-// A value that cannot be read shows "--". Opened with joystick up, left with joystick down.
+// A value that cannot be read shows "--". The fourth page of the left/right cycle.
 Item {
     id: root
     required property var backend
