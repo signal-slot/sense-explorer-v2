@@ -1,4 +1,4 @@
-# sense-explorer
+# sense-explorer-v2
 
 Qt 6 / QML demo that shows Sense HAT V2 sensors on a Raspberry Pi 4 running Zephyr.
 
@@ -84,7 +84,7 @@ The binary starts the UI with no sensors, so every value shows `--`. To see simu
 /path/to/Qt/6.12.0/gcc_64/bin/qml qml/Main.qml
 ```
 
-`tools/shot.sh <page> <out.png>` renders a page offscreen to a PNG. Set `QT_HOST_DIR` if Qt is not under `~/Qt/6.12.0/gcc_64`.
+`tools/shot.sh <page> <out.png>` renders a page offscreen to a PNG, with the simulated values. `<page>` is the page number: 0 Environment, 1 Motion, 2 Light & LED, 3 System. Set `QT_HOST_DIR` if Qt is not under `~/Qt/6.12.0/gcc_64`.
 
 ### For the Raspberry Pi 4
 
