@@ -11,6 +11,9 @@
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/kernel.h>
+#include <zephyr/sys/cpu_load.h>
+#include <zephyr/sys/mem_stats.h>
+#include <zephyr/version.h>
 
 // The devicetree labels are set in zephyr/sensehat.overlay.
 static const struct device *const kI2c = DEVICE_DT_GET(DT_NODELABEL(i2c1));
@@ -39,6 +42,12 @@ static uint8_t gLedRgb[64 * 3];
 static double gLedBrightness;
 static bool gLedDirty;
 static uint32_t gJoyPending;
+
+#ifdef CONFIG_SYS_HEAP_RUNTIME_STATS
+// Declared only in a private header of Zephyr's libc (lib/libc/common/include/sys_malloc.h);
+// it is defined when CONFIG_SYS_HEAP_RUNTIME_STATS is set (and the libc malloc is used).
+extern "C" int malloc_runtime_stats_get(struct sys_memory_stats *stats);
+#endif
 
 static double val(const struct sensor_value &v)
 {
@@ -302,11 +311,43 @@ void sensorsGet(SensorSnapshot *out)
     k_mutex_unlock(&gLock);
 }
 
+void systemStatsGet(SystemStats *out)
+{
+    *out = SystemStats();
+    out->zephyrVersion = KERNEL_VERSION_STRING;
+#ifdef CONFIG_CPU_LOAD
+    const unsigned cpus = arch_num_cpus();
+    int sum = 0;
+    bool ok = cpus > 0;
+    for (unsigned i = 0; i < cpus && ok; i++) {
+        const int load = cpu_load_get_cpu(i, true);
+        if (load < 0)
+            ok = false;
+        else
+            sum += load;
+    }
+    if (ok) {
+        out->cpuLoadPermille = sum / int(cpus);
+        out->cpuValid = true;
+    }
+#endif
+#ifdef CONFIG_SYS_HEAP_RUNTIME_STATS
+    struct sys_memory_stats ms;
+    if (malloc_runtime_stats_get(&ms) == 0) {
+        out->heapAllocated = ms.allocated_bytes;
+        out->heapFree = ms.free_bytes;
+        out->heapPeak = ms.max_allocated_bytes;
+        out->heapValid = true;
+    }
+#endif
+}
+
 #else  // host (development): no sensors, so nothing is ever available
 
 void sensorsStart() {}
 uint32_t sensorsTakeJoystick() { return 0; }
 void ledSet(const uint8_t *, double) {}
 void sensorsGet(SensorSnapshot *out) { *out = SensorSnapshot(); }
+void systemStatsGet(SystemStats *out) { *out = SystemStats(); }
 
 #endif

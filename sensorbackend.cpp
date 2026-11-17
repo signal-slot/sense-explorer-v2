@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 #include "sensorbackend.h"
 
+#include <QtCore/qglobal.h>
 #include <QtGui/qcolor.h>
 
 SensorBackend::SensorBackend(QObject *parent) : QObject(parent)
@@ -14,6 +15,36 @@ SensorBackend::SensorBackend(QObject *parent) : QObject(parent)
     m_timer.setInterval(50);  // same as the IMU period of the Zephyr thread (20 Hz)
     connect(&m_timer, &QTimer::timeout, this, &SensorBackend::poll);
     m_timer.start();
+    m_sysTimer.setInterval(1000);
+    connect(&m_sysTimer, &QTimer::timeout, this, &SensorBackend::pollSystem);
+    m_sysTimer.start();
+    pollSystem();  // the first reading; the CPU load needs a second one
+}
+
+QString SensorBackend::zephyrVersion() const
+{
+    // From the last reading: asking Zephyr again would restart the CPU load window.
+    return m_sys.zephyrVersion ? QString::fromLatin1(m_sys.zephyrVersion) : QString();
+}
+
+QString SensorBackend::qtVersion() const
+{
+    return QString::fromLatin1(QT_VERSION_STR);
+}
+
+void SensorBackend::pollSystem()
+{
+    SystemStats s;
+    systemStatsGet(&s);
+    // CPU load: systemStatsGet() reports the load since the previous reading. The first
+    // reading covers the time since boot, so it is not shown.
+    const bool cpuValid = s.cpuValid && m_sysHadReading;
+    const qreal cpuLoad = qBound(0.0, s.cpuLoadPermille / 10.0, 100.0);
+    m_sysHadReading = s.cpuValid;
+    m_sys = s;
+    m_cpuValid = cpuValid;
+    m_cpuLoad = cpuLoad;
+    emit systemChanged();
 }
 
 QString SensorBackend::status() const

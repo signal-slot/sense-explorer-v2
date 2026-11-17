@@ -15,16 +15,20 @@ Rectangle {
     // SensorBackend); on a desktop the mock is used.
     property var sensors: mock
     readonly property var backend: sensors
-    readonly property var pageNames: ["Environment", "Motion", "Light & LED"]
+    readonly property var pageNames: ["Environment", "Motion", "Light & LED", "System"]
+
+    // Left (step = pageNames.length - 1) and right (step = 1): the pages are a cycle.
+    function cycle(step) { page = (page + step) % pageNames.length }
 
     MockBackend { id: mock; active: win.sensors === mock }
 
-    // Joystick: left and right switch pages (the same as the arrow keys on a desktop)
+    // Joystick: left and right switch pages (the same as the arrow keys on a desktop).
+    // Up, down and the press do nothing.
     Connections {
         target: win.sensors
         function onJoystickPressed(dir) {
-            if (dir === "left") win.page = (win.page + 2) % 3
-            else if (dir === "right") win.page = (win.page + 1) % 3
+            if (dir === "left") win.cycle(win.pageNames.length - 1)
+            else if (dir === "right") win.cycle(1)
         }
     }
 
@@ -33,8 +37,8 @@ Rectangle {
     Item {
         anchors.fill: parent
         focus: true
-        Keys.onLeftPressed: win.page = (win.page + 2) % 3
-        Keys.onRightPressed: win.page = (win.page + 1) % 3
+        Keys.onLeftPressed: win.cycle(win.pageNames.length - 1)
+        Keys.onRightPressed: win.cycle(1)
         Keys.onPressed: (e) => {
             if (e.key === Qt.Key_E) win.sensors.failEnv = !win.sensors.failEnv
             else if (e.key === Qt.Key_I) win.sensors.failImu = !win.sensors.failImu
@@ -79,6 +83,7 @@ Rectangle {
             EnvironmentPage { backend: win.sensors }
             MotionPage { backend: win.sensors }
             LightLedPage { backend: win.sensors }
+            SystemPage { backend: win.sensors }
         }
 
         Rectangle {   // footer
