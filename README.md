@@ -116,6 +116,18 @@ On one board, 2026-11-16, from runs of about 220 to 240 seconds:
 | Joystick | 4 presses (right, left, right, press), all recorded | Serial log |
 | Errors | No `GL error`, no exception | Serial log |
 
+The System page, on the same board, 2026-11-18, from runs of about 420 seconds:
+
+| Item | Result | Basis |
+|---|---|---|
+| Page switching | Left and right go round the four pages (24 presses in the serial log of one run) | Observation, serial log |
+| Up, down and press | Do nothing in the page logic; no up or down press is in the logs of the four-page runs, so this was not tried on the board | QtTest on the host only |
+| CPU load | 2 to 5 % and steady while the page was open (the first reading after start-up is not shown) | Observation |
+| Memory and versions | Shown on the page; the numbers were not compared with another source | Observation |
+| Errors | No `<err>`, no `GL error`, no exception | Serial log |
+
+The `[hb] cpu busy` line that the `qt6-for-zephyr` module prints to the serial log is a different calculation. In the 420 s run it printed values from 0 to 102 % and left out 16 of 40 beats, while the page stayed at 2 to 5 %; the cause of that line's values is not known.
+
 Not checked: long runs, memory growth, grid lines, the Motion page by eye, repeated or long joystick presses, LED brightness limits and current, and the colour sensor against the colours on screen.
 
 ## Known limits
@@ -124,7 +136,8 @@ Not checked: long runs, memory growth, grid lines, the Motion page by eye, repea
 - The colour values are uncalibrated references. The temperature reads above room temperature (board heat; not investigated).
 - LED brightness is fixed at a default of 0.25 and cannot be changed from the screen.
 - Joystick up, down and press are read but not used by the UI.
-- The CPU load of the System page is the average of all cores (one core at 100 % shows about 25 % on the 4-core board) and counts time waiting on the GPU as idle. The memory figures are for the `malloc` heap only (not the kernel heap, thread stacks or GPU memory); they need `CONFIG_SYS_HEAP_RUNTIME_STATS` (set in `zephyr/sensehat.conf`) and use a function that is declared only in a private header of Zephyr's libc. Without them the page shows `--`.
+- The CPU load comes from a measurement window that Zephyr keeps once per CPU: anything else that calls `cpu_load_get_cpu()` with reset (the periodic log `CONFIG_CPU_LOAD_LOG_PERIODICALLY`, the `cpu_freq` on-demand policy) would shorten it. Neither is enabled in this build. If no time has passed between two readings, the function returns 0 and the page shows 0 %.
+- The CPU load of the System page is the average of all cores (one core at 100 % shows about 25 % on the 4-core board) and counts time waiting on the GPU as idle. It comes from Zephyr's `cpu_load_get_cpu()` (`CONFIG_CPU_LOAD`, set in `zephyr/sensehat.conf`), which is documented as not counting time in interrupts. The memory figures are for the `malloc` heap only (not the kernel heap, thread stacks or GPU memory); they need `CONFIG_SYS_HEAP_RUNTIME_STATS` (set in `zephyr/sensehat.conf`) and use a function that is declared only in a private header of Zephyr's libc. Without them the page shows `--`.
 - If the sensor thread stops (for example an I2C call that never returns), nothing on screen says so: the status stays "Ready" and only the "N s ago" ages in the footer grow. There is no watchdog.
 - The LED matrix is written only when the picture changes. If the Sense HAT loses power and comes back, the matrix is not refreshed and may differ from the picture on screen.
 - The IMU is one group: if the magnetometer cannot be read, roll, pitch and the acceleration graph become unavailable too, and only the first failure is counted as an error.

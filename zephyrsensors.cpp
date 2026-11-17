@@ -11,6 +11,7 @@
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/kernel.h>
+#include <zephyr/sys/cpu_load.h>
 #include <zephyr/sys/mem_stats.h>
 #include <zephyr/version.h>
 
@@ -314,11 +315,19 @@ void systemStatsGet(SystemStats *out)
 {
     *out = SystemStats();
     out->zephyrVersion = KERNEL_VERSION_STRING;
-#ifdef CONFIG_SCHED_THREAD_USAGE_ALL
-    k_thread_runtime_stats_t st;
-    if (k_thread_runtime_stats_all_get(&st) == 0) {
-        out->busyCycles = st.total_cycles;
-        out->allCycles = st.execution_cycles;
+#ifdef CONFIG_CPU_LOAD
+    const unsigned cpus = arch_num_cpus();
+    int sum = 0;
+    bool ok = cpus > 0;
+    for (unsigned i = 0; i < cpus && ok; i++) {
+        const int load = cpu_load_get_cpu(i, true);
+        if (load < 0)
+            ok = false;
+        else
+            sum += load;
+    }
+    if (ok) {
+        out->cpuLoadPermille = sum / int(cpus);
         out->cpuValid = true;
     }
 #endif

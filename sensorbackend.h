@@ -150,8 +150,8 @@ private:
     QTimer m_sysTimer;
     QElapsedTimer m_clock;
     SensorSnapshot m_s;
-    SystemStats m_sys, m_sysPrev;
-    bool m_sysPrevValid = false;   // m_sysPrev holds a reading of the CPU counters
+    SystemStats m_sys;
+    bool m_sysHadReading = false;   // an earlier reading of the CPU load exists
     bool m_cpuValid = false;
     qreal m_cpuLoad = 0;
     qreal m_t = 0;

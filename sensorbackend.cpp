@@ -23,9 +23,8 @@ SensorBackend::SensorBackend(QObject *parent) : QObject(parent)
 
 QString SensorBackend::zephyrVersion() const
 {
-    SystemStats s;
-    systemStatsGet(&s);
-    return s.zephyrVersion ? QString::fromLatin1(s.zephyrVersion) : QString();
+    // From the last reading: asking Zephyr again would restart the CPU load window.
+    return m_sys.zephyrVersion ? QString::fromLatin1(m_sys.zephyrVersion) : QString();
 }
 
 QString SensorBackend::qtVersion() const
@@ -37,20 +36,11 @@ void SensorBackend::pollSystem()
 {
     SystemStats s;
     systemStatsGet(&s);
-    // CPU load: the change of the non-idle cycles over the change of all cycles since the
-    // last reading. It is not valid for the first reading, or when the counters did not
-    // advance (or went back), which would give a meaningless ratio.
-    bool cpuValid = false;
-    qreal cpuLoad = 0;
-    if (s.cpuValid && m_sysPrevValid && s.allCycles > m_sysPrev.allCycles
-        && s.busyCycles >= m_sysPrev.busyCycles) {
-        const double busy = double(s.busyCycles - m_sysPrev.busyCycles);
-        const double all = double(s.allCycles - m_sysPrev.allCycles);
-        cpuLoad = qBound(0.0, 100.0 * busy / all, 100.0);
-        cpuValid = true;
-    }
-    m_sysPrevValid = s.cpuValid;
-    m_sysPrev = s;
+    // CPU load: systemStatsGet() reports the load since the previous reading. The first
+    // reading covers the time since boot, so it is not shown.
+    const bool cpuValid = s.cpuValid && m_sysHadReading;
+    const qreal cpuLoad = qBound(0.0, s.cpuLoadPermille / 10.0, 100.0);
+    m_sysHadReading = s.cpuValid;
     m_sys = s;
     m_cpuValid = cpuValid;
     m_cpuLoad = cpuLoad;
