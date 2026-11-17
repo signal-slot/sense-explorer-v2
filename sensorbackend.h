@@ -50,6 +50,17 @@ class SensorBackend : public QObject
     Q_PROPERTY(QVariantList ledPixels READ ledPixels NOTIFY ledChanged)
     Q_PROPERTY(qreal ledBrightness READ ledBrightness WRITE setLedBrightness NOTIFY ledChanged)
 
+    // System page: versions, CPU load and malloc heap use (updated once per second). A value
+    // that cannot be read is invalid and the UI shows "--".
+    Q_PROPERTY(QString zephyrVersion READ zephyrVersion CONSTANT)
+    Q_PROPERTY(QString qtVersion READ qtVersion CONSTANT)
+    Q_PROPERTY(bool cpuValid READ cpuValid NOTIFY systemChanged)
+    Q_PROPERTY(qreal cpuLoad READ cpuLoad NOTIFY systemChanged)       // %, average of all CPUs
+    Q_PROPERTY(bool memValid READ memValid NOTIFY systemChanged)
+    Q_PROPERTY(qreal memAllocated READ memAllocated NOTIFY systemChanged)  // bytes
+    Q_PROPERTY(qreal memTotal READ memTotal NOTIFY systemChanged)          // bytes (allocated + free)
+    Q_PROPERTY(qreal memPeak READ memPeak NOTIFY systemChanged)            // bytes
+
     // Fault injection for testing (keys E, I and C). Reading goes on; the UI is told that
     // the group is invalid.
     Q_PROPERTY(bool failEnv READ failEnv WRITE setFailEnv NOTIFY failChanged)
@@ -91,6 +102,15 @@ public:
     bool colorValid() const { return m_s.colorValid && !m_failColor; }
     qreal colorUpdated() const { return m_colorUpdated; }
 
+    QString zephyrVersion() const;
+    QString qtVersion() const;
+    bool cpuValid() const { return m_cpuValid; }
+    qreal cpuLoad() const { return m_cpuLoad; }
+    bool memValid() const { return m_sys.heapValid; }
+    qreal memAllocated() const { return qreal(m_sys.heapAllocated); }
+    qreal memTotal() const { return qreal(m_sys.heapAllocated + m_sys.heapFree); }
+    qreal memPeak() const { return qreal(m_sys.heapPeak); }
+
     QVariantList ledPixels() const { return m_led; }
     qreal ledBrightness() const { return m_ledBrightness; }
     void setLedBrightness(qreal v);
@@ -114,6 +134,7 @@ signals:
     void imuChanged();
     void colorChanged();
     void ledChanged();
+    void systemChanged();
     void failChanged();
     void envSample(qreal t, qreal temp, qreal hum, qreal pres);
     void imuSample(qreal t, qreal ax, qreal ay, qreal az);
@@ -122,11 +143,17 @@ signals:
 
 private:
     void poll();
+    void pollSystem();   // once per second: CPU load from two cycle readings, heap use
     void pushLed();   // hand the LED state of the UI to the Zephyr thread, which writes it
 
     QTimer m_timer;
+    QTimer m_sysTimer;
     QElapsedTimer m_clock;
     SensorSnapshot m_s;
+    SystemStats m_sys, m_sysPrev;
+    bool m_sysPrevValid = false;   // m_sysPrev holds a reading of the CPU counters
+    bool m_cpuValid = false;
+    qreal m_cpuLoad = 0;
     qreal m_t = 0;
     qreal m_envUpdated = -1, m_imuUpdated = -1, m_colorUpdated = -1;
     QVariantList m_led;

@@ -27,7 +27,7 @@ target_link_libraries(sense_explorer PUBLIC
 # main.cpp shows App.qml in a QQuickView.
 set(SE_QML_FILES
     App Theme StatusBar SensorCard HistoryGraph TabButton
-    EnvironmentPage MotionPage LightLedPage MockBackend)
+    EnvironmentPage MotionPage LightLedPage SystemPage MockBackend)
 set(SE_QML_PATHS)
 foreach(n IN LISTS SE_QML_FILES)
     list(APPEND SE_QML_PATHS qml/${n}.qml)

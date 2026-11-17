@@ -34,5 +34,19 @@ uint32_t sensorsTakeJoystick();
 // (R, G, B); brightness is 0 to 1 (0 is off). The thread writes it in its next period.
 void ledSet(const uint8_t rgb[64 * 3], double brightness);
 
+// System load and memory (for the System page). The CPU values are cumulative cycle counters
+// over all CPUs: a load is the change of busyCycles divided by the change of allCycles between
+// two readings. The heap values are the bytes of the malloc heap. A group whose source is not
+// available (not Zephyr, or the Zephyr option is off) has its valid flag false.
+struct SystemStats {
+    bool cpuValid = false;
+    uint64_t busyCycles = 0;    // non-idle cycles of all CPUs
+    uint64_t allCycles = 0;     // non-idle plus idle cycles of all CPUs
+    bool heapValid = false;
+    uint64_t heapAllocated = 0, heapFree = 0, heapPeak = 0;
+    const char *zephyrVersion = nullptr;   // e.g. "4.5.0"; nullptr when not on Zephyr
+};
+void systemStatsGet(SystemStats *out);
+
 void sensorsStart();                     // starts the reading thread (once)
 void sensorsGet(SensorSnapshot *out);    // copies the latest values (guarded by a mutex)

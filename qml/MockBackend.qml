@@ -44,6 +44,16 @@ Item {
 
     property int errorCount: 0
 
+    // System page (1 Hz). Fixed texts for the versions: the mock has no C++ side to ask.
+    readonly property string zephyrVersion: "mock"
+    readonly property string qtVersion: "mock"
+    property bool cpuValid: false
+    property real cpuLoad: 0           // %, average of all CPUs
+    property bool memValid: false
+    property real memAllocated: 0      // bytes
+    property real memTotal: 0          // bytes (allocated + free)
+    property real memPeak: 0           // bytes
+
     // LED(8x8、"#rrggbb")
     property var ledPixels: Array(64).fill("#000000")
     property real ledBrightness: 0.25  // 0 to 1
@@ -96,6 +106,17 @@ Item {
             root.envValid = true
             root.envUpdated = root.t
             root.envSample(root.t, root.temperature, root.humidity, root.pressure)
+        }
+    }
+    Timer {   // system, 1 Hz
+        interval: 1000; running: root.active; repeat: true; triggeredOnStart: true
+        onTriggered: {
+            root.cpuLoad = 8 + 6 * Math.sin(root.t / 10) + Math.random() * 2
+            root.cpuValid = true
+            root.memTotal = 64 * 1024 * 1024
+            root.memAllocated = (20 + 2 * Math.sin(root.t / 30)) * 1024 * 1024
+            root.memPeak = Math.max(root.memPeak, root.memAllocated)
+            root.memValid = true
         }
     }
     Timer {   // IMU 20 Hz

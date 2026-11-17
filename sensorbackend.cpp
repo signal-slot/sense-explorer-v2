@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 #include "sensorbackend.h"
 
+#include <QtCore/qglobal.h>
 #include <QtGui/qcolor.h>
 
 SensorBackend::SensorBackend(QObject *parent) : QObject(parent)
@@ -14,6 +15,46 @@ SensorBackend::SensorBackend(QObject *parent) : QObject(parent)
     m_timer.setInterval(50);  // same as the IMU period of the Zephyr thread (20 Hz)
     connect(&m_timer, &QTimer::timeout, this, &SensorBackend::poll);
     m_timer.start();
+    m_sysTimer.setInterval(1000);
+    connect(&m_sysTimer, &QTimer::timeout, this, &SensorBackend::pollSystem);
+    m_sysTimer.start();
+    pollSystem();  // the first reading; the CPU load needs a second one
+}
+
+QString SensorBackend::zephyrVersion() const
+{
+    SystemStats s;
+    systemStatsGet(&s);
+    return s.zephyrVersion ? QString::fromLatin1(s.zephyrVersion) : QString();
+}
+
+QString SensorBackend::qtVersion() const
+{
+    return QString::fromLatin1(QT_VERSION_STR);
+}
+
+void SensorBackend::pollSystem()
+{
+    SystemStats s;
+    systemStatsGet(&s);
+    // CPU load: the change of the non-idle cycles over the change of all cycles since the
+    // last reading. It is not valid for the first reading, or when the counters did not
+    // advance (or went back), which would give a meaningless ratio.
+    bool cpuValid = false;
+    qreal cpuLoad = 0;
+    if (s.cpuValid && m_sysPrevValid && s.allCycles > m_sysPrev.allCycles
+        && s.busyCycles >= m_sysPrev.busyCycles) {
+        const double busy = double(s.busyCycles - m_sysPrev.busyCycles);
+        const double all = double(s.allCycles - m_sysPrev.allCycles);
+        cpuLoad = qBound(0.0, 100.0 * busy / all, 100.0);
+        cpuValid = true;
+    }
+    m_sysPrevValid = s.cpuValid;
+    m_sysPrev = s;
+    m_sys = s;
+    m_cpuValid = cpuValid;
+    m_cpuLoad = cpuLoad;
+    emit systemChanged();
 }
 
 QString SensorBackend::status() const
